@@ -31,8 +31,8 @@
   [period interval]
   (condp = interval
     :year (.getYears period)
-    :month (.getMonths period)
-    :week (.getWeeks period)))
+    :month (+ (.getMonths period) (* 12 (.getYears period)))
+    :week (+ (.getWeeks period) (* 52 (.getYears period)))))
 
 (defn get-worth
   [opts]
@@ -91,14 +91,15 @@
           fmt (NumberFormat/getCurrencyInstance)
           pfmt (.toFormatter (doto (PeriodFormatterBuilder.)
                                (.printZeroNever)
-                               (.appendDays)
-                               (.appendSuffix " day" " days")
+                               (.appendYears)
+                               (.appendSuffix " year" " years")
                                (.appendSeparator ", ")
                                (.appendMonths)
                                (.appendSuffix " month" " months")
                                (.appendSeparator ", ")
-                               (.appendYears)
-                               (.appendSuffix " year" " years")))]
+                               (.appendDays)
+                               (.appendSuffix " day" " days")
+                               ))]
       (printf "Today's %s price is %s; your total unsold shares are worth %s.\n"
               (:ticker options)
               (.format fmt (:price worth))
@@ -107,7 +108,7 @@
         (println "You are 100% vested. Why are you still here?")
         (printf "You are %d%% vested, for a total of %d vested unsold shares (%s).\nBut if you quit today, you will walk away from %s.\nHang in there little trooper!  Only %s left!\n"
                 (:vested-pct worth)
-                (:exercisable-shares worth)
+                (int (:exercisable-shares worth))
                 (.format fmt (:value-today worth))
                 (.format fmt (:value-pending worth))
                 (.print pfmt (Period. (DateTime/now) (:end-date options))))))))
