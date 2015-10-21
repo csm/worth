@@ -24,3 +24,10 @@ Example (no I don't work for Google):
     You are 52% vested, for a total of 5 vested unsold shares ($1,784.43).
     But if you quit today, you will walk away from $1,641.67.
     Hang in there little trooper!  Only 1 year, 10 months, 2 days left!
+
+Less appealing example (no I don't work for Twitter either):
+
+    lein run -- --ticker TWTR --units 10 --start-date 2013-09-21 --end-date 2017-09-21 --rate month --strike 40
+    Today's TWTR price is $29.30; your total unsold shares are worth ($107.00).
+    You are 52% vested, for a total of 5 vested unsold shares (($55.73)).
+    Your shares are worthless. Why are you still here?
