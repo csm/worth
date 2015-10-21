@@ -38,6 +38,7 @@
   [opts]
   (let [{:keys [ticker units strike sold start-date end-date rate]} opts
         price (fetch-price ticker)
+        value (- price strike)
         total-time (Period. start-date end-date)
         total-periods (get-time-periods total-time rate)
         elapsed-periods (get-time-periods (Period. start-date (DateTime/now)) rate)
@@ -45,8 +46,9 @@
         unvested-shares (- units vested-shares)
         exercisable-shares (- vested-shares sold)]
     {:price price
-     :value-today (* price exercisable-shares)
-     :value-pending (* price unvested-shares)
+     :value value
+     :value-today (* value exercisable-shares)
+     :value-pending (* value unvested-shares)
      :vested-shares vested-shares
      :exercisable-shares exercisable-shares
      :unvested-shares unvested-shares
@@ -103,12 +105,16 @@
       (printf "Today's %s price is %s; your total unsold shares are worth %s.\n"
               (:ticker options)
               (.format fmt (:price worth))
-              (.format fmt (* (:price worth) (- (:units options) (:sold options)))))
+              (.format fmt (* (:value worth) (- (:units options) (:sold options)))))
       (if (= 0 (:unvested-shares worth))
         (println "You are 100% vested. Why are you still here?")
-        (printf "You are %d%% vested, for a total of %d vested unsold shares (%s).\nBut if you quit today, you will walk away from %s.\nHang in there little trooper!  Only %s left!\n"
-                (:vested-pct worth)
-                (int (:exercisable-shares worth))
-                (.format fmt (:value-today worth))
-                (.format fmt (:value-pending worth))
-                (.print pfmt (Period. (DateTime/now) (:end-date options))))))))
+        (do
+          (printf "You are %d%% vested, for a total of %d vested unsold shares (%s).\n"
+                  (:vested-pct worth)
+                  (int (:exercisable-shares worth))
+                  (.format fmt (:value-today worth)))
+          (if (< 0 (:value-pending worth))
+            (printf "But if you quit today, you will walk away from %s.\nHang in there little trooper!  Only %s left!\n"
+                    (.format fmt (:value-pending worth))
+                    (.print pfmt (Period. (DateTime/now) (:end-date options))))
+            (printf "Your shares are worthless. Why are you still here?\n")))))))
