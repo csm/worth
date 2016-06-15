@@ -36,13 +36,16 @@
 
 (defn get-worth
   [opts]
-  (let [{:keys [ticker units strike sold start-date end-date rate]} opts
+  (let [{:keys [ticker units strike sold start-date end-date rate no-year-cliff]} opts
         price (fetch-price ticker)
         value (- price strike)
         total-time (Period. start-date end-date)
+        more-than-one-year (>= 1 (.getYears total-time))
         total-periods (get-time-periods total-time rate)
         elapsed-periods (get-time-periods (Period. start-date (DateTime/now)) rate)
-        vested-shares (* units (/ elapsed-periods total-periods))
+        vested-shares (if (or more-than-one-year no-year-cliff)
+                        (* units (/ elapsed-periods total-periods))
+                        0)
         unvested-shares (- units vested-shares)
         exercisable-shares (- vested-shares sold)]
     {:price price
@@ -70,10 +73,23 @@
     :parse-fn parse-date]
    ["-e" "--end-date YYYY-MM-DD" "Vesting schedule end date."
     :parse-fn parse-date]
-   ["-r" "--rate RATE" "Maturation rate." :default "month"
+   ["-r" "--rate RATE" "Maturation rate." :default :month
     :parse-fn keyword
     :validate [#(contains? #{:year :month :week} (keyword %)) "Rate must be 'year', 'month', or 'week'."]]
+   ["-c" "--no-color" "Don't use color codes."]
+   ["-y" "--no-year-cliff" "Vesting does not have a one-year cliff."],
    ["-h" "--help" "Show this help and exit."]])
+
+(defn color
+  [what]
+  (condp = what
+    :bold "\u001b[1m"
+    :italic "\u001b[3m"
+    :red "\u001b[31m"
+    :green "\u001b[32m"
+    :yellow "\u001b[33m"
+    :white "\u001b[37m"
+    "\u001b[0m"))
 
 (defn -main
   "I don't do a whole lot ... yet."
@@ -81,6 +97,10 @@
   (let [opts (cli/parse-opts args cli-options)
         options (:options opts)]
     (when (:help options)
+      (println "Usage: worth -t SYMBOL -u UNITS -b DATE -e DATE [options]")
+      (println)
+      (println "Displays what your one and only youth is worth today.")
+      (println)
       (println (:summary opts))
       (System/exit 0))
     (when (:errors opts)
@@ -101,20 +121,46 @@
                                (.appendSeparator ", ")
                                (.appendDays)
                                (.appendSuffix " day" " days")
-                               ))]
-      (printf "Today's %s price is %s; your total unsold shares are worth %s.\n"
+                               ))
+          unsold-worth (* (:value worth) (- (:units options) (:sold options)))]
+      (printf "Today's %s%s%s price is %s%s%s; your total unsold shares are worth %s%s%s.\n"
+              (if (:no-color options) "" (str (color :white) (color :bold)))
               (:ticker options)
+              (if (:no-color options) "" (color :reset))
+              (if (:no-color options) "" (str (color :white) (color :bold)))
               (.format fmt (:price worth))
-              (.format fmt (* (:value worth) (- (:units options) (:sold options)))))
+              (if (:no-color options) "" (color :reset))
+              (if (:no-color options) "" (str (color :yellow) (color :bold)))
+              (.format fmt unsold-worth)
+              (if (:no-color options) "" (color :reset)))
       (if (= 0 (:unvested-shares worth))
         (println "You are 100% vested. Why are you still here?")
         (do
-          (printf "You are %d%% vested, for a total of %d vested unsold shares (%s).\n"
+          (printf "You are %s%d%%%s vested, for a total of %s%d%s vested unsold shares (%s%s%s).\n"
+                  (if (:no-color options) "" (str (color :white) (color :bold)))
                   (:vested-pct worth)
+                  (if (:no-color options) "" (color :reset))
+                  (if (:no-color options) "" (str (color :green) (color :bold)))
                   (int (:exercisable-shares worth))
-                  (.format fmt (:value-today worth)))
+                  (if (:no-color options) "" (color :reset))
+                  (if (:no-color options) "" (str (color :green) (color :bold)))
+                  (.format fmt (:value-today worth))
+                  (if (:no-color options) "" (color :reset)))
           (if (< 0 (:value-pending worth))
-            (printf "But if you quit today, you will walk away from %s.\nHang in there little trooper!  Only %s left!\n"
+            (printf "But if you quit today, you will walk away from %s%s%s.\nHang in there little trooper!  Only %s%s%s left!\n"
+                    (if (:no-color options) "" (str (color :red) (color :bold)))
                     (.format fmt (:value-pending worth))
-                    (.print pfmt (Period. (DateTime/now) (:end-date options))))
-            (printf "Your shares are worthless. Why are you still here?\n")))))))
+                    (if (:no-color options) "" (color :reset))
+                    (if (:no-color options) "" (str (color :white) (color :bold)))
+                    (.print pfmt (Period. (DateTime/now) (:end-date options)))
+                    (if (:no-color options) "" (color :reset)))
+            (printf "Your shares are worthless. Why are you still here?\n"))
+          (when (and (not (:no-year-cliff options))
+                     (< 1 (.getYears (Period. (DateTime/now) (:end-date options)))))
+            (printf "Only %s%s%s left until your one-year anniversary,\nthen you will get shares worth %s%s%s!\n"
+                    (if (:no-color options) "" (str (color :white) (color :bold)))
+                    (.print pfmt (Period. (DateTime/now) (.plusYears (:start-date options) 1)))
+                    (if (:no-color options) "" (color :reset))
+                    (if (:no-color options) "" (str (color :yellow) (color :bold)))
+                    (.format fmt (* (:value worth) (/ (:units options) (.getYears (Period. (:start-date options) (:end-date options))))))
+                    (if (:no-color options) "" (color :reset)))))))))
