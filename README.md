@@ -4,18 +4,22 @@ Inspired by https://www.jwz.org/hacks/worth.pl.
 
 Usage:
 
-    lein run -- (options...)
+    Usage: worth -t SYMBOL -u UNITS -b DATE -e DATE [options]
 
-      -t, --ticker TICKER                 Stock ticker symbol.
-      -u, --units UNITS                   Number of stock units or options.
-      -p, --strike PRICE           0.0    Set strike price.
-      -s, --sold COUNT             0      Number of shares already sold.
-      -b, --start-date YYYY-MM-DD         Vesting schedule start date.
-      -e, --end-date YYYY-MM-DD           Vesting schedule end date.
-      -r, --rate RATE              month  Maturation rate.
-      -h, --help                          Show this help and exit.
+    Displays what your one and only youth is worth today.
 
-Caveats: assumes shares all vest at the same rate, and don't have a "cliff". Your mileage may vary.
+      -t, --ticker TICKER                  Stock ticker symbol.
+      -u, --units UNITS                    Number of stock units or options.
+      -p, --strike PRICE           0.0     Set strike price.
+      -s, --sold COUNT             0       Number of shares already sold.
+      -b, --start-date YYYY-MM-DD          Vesting schedule start date.
+      -e, --end-date YYYY-MM-DD            Vesting schedule end date.
+      -r, --rate RATE              :month  Maturation rate.
+      -c, --no-color                       Don't use color codes.
+      -y, --no-year-cliff                  Vesting does not have a one-year cliff.
+      -h, --help                           Show this help and exit.    lein run -- (options...)
+
+Caveats: assumes shares all vest at the same rate. Your mileage may vary.
 
 Example (no I don't work for Google):
 
