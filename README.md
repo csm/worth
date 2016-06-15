@@ -17,7 +17,7 @@ Usage:
       -r, --rate RATE              :month  Maturation rate.
       -c, --no-color                       Don't use color codes.
       -y, --no-year-cliff                  Vesting does not have a one-year cliff.
-      -h, --help                           Show this help and exit.    lein run -- (options...)
+      -h, --help                           Show this help and exit.
 
 Caveats: assumes shares all vest at the same rate. Your mileage may vary.
 
